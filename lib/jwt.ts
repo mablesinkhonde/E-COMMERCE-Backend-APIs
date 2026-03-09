@@ -1,3 +1,5 @@
+'use server';
+
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
 
@@ -24,7 +26,7 @@ export function verifyToken(token: string): JWTPayload | null {
   }
 }
 
-export async function setTokenCookie(token: string) {
+export async function setTokenCookie(token: string, response?: any) {
   const cookieStore = await cookies();
   cookieStore.set('authToken', token, {
     httpOnly: true,
@@ -33,6 +35,17 @@ export async function setTokenCookie(token: string) {
     maxAge: 7 * 24 * 60 * 60, // 7 days
     path: '/',
   });
+  
+  // Also set on response if provided
+  if (response) {
+    response.cookies.set('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    });
+  }
 }
 
 export async function getTokenFromCookie(): Promise<string | null> {

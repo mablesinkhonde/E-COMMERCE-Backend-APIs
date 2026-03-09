@@ -5,9 +5,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('[v0] Login request received');
     await connectDB();
+    console.log('[v0] Database connected');
 
     const { email, password } = await request.json();
+    console.log('[v0] Login attempt for:', email);
 
     // Validation
     if (!email || !password) {
@@ -42,11 +45,10 @@ export async function POST(request: NextRequest) {
       userId: user._id.toString(),
       email: user.email,
     });
+    console.log('[v0] Token generated for user:', user._id);
 
-    // Set token in cookies
-    await setTokenCookie(token);
-
-    return NextResponse.json(
+    // Create response with token
+    const response = NextResponse.json(
       {
         success: true,
         message: 'Logged in successfully',
@@ -58,7 +60,22 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
+
+    // Set cookie on response
+    response.cookies.set('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60,
+      path: '/',
+    });
+
+    await setTokenCookie(token);
+    console.log('[v0] Token cookie set');
+
+    return response;
   } catch (error: any) {
+    console.error('[v0] Login error:', error);
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to login' },
       { status: 500 }
